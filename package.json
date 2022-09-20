@@ -7,7 +7,6 @@
   "scripts": {
     "build": "tsc",
     "test": "jest --testTimeout 10000",
-    "package": "ncc build --source-map --license licenses.txt",
     "check": "prettier --check ."
   },
   "repository": {
