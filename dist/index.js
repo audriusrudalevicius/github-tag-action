@@ -120,7 +120,7 @@ function main() {
             return { previousVersion, previousTag };
         };
         commits = yield (0, utils_1.getCommits)(latestTag.commit.sha, commitRef);
-        if ((useCommitSha == 'true' || (isPrerelease && useCommitSha == 'prerelease')) && defaultPreReleaseBump == 'prerelease') {
+        if ((useCommitSha == 'true' || (isPrerelease && useCommitSha == 'prerelease'))) {
             const parsedVersionInfo = parsePreviousVersion();
             if (parsedVersionInfo == null) {
                 core.setFailed('Failed to parse old version');

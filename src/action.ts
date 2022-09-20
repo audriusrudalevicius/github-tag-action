@@ -112,7 +112,7 @@ export default async function main() {
 
   commits = await getCommits(latestTag.commit.sha, commitRef);
 
-  if ((useCommitSha == 'true' || (isPrerelease && useCommitSha == 'prerelease')) && defaultPreReleaseBump == 'prerelease') {
+  if ((useCommitSha == 'true' || (isPrerelease && useCommitSha == 'prerelease'))) {
     const parsedVersionInfo = parsePreviousVersion();
     if (parsedVersionInfo == null) {
       core.setFailed('Failed to parse old version');

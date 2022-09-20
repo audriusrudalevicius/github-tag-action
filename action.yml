@@ -44,6 +44,9 @@ inputs:
   pre_release_branches:
     description: "Comma separated list of branches (bash reg exp accepted) that will generate pre-release tags."
     required: false
+  use_commit_sha:
+    description: "'prerelease': Use short hash for prereleases. "
+    required: false
   commit_sha:
     description: "The commit SHA value to add the tag. If specified, it uses this value instead GITHUB_SHA. It could be useful when a previous step merged a branch into github.ref."
     required: false
