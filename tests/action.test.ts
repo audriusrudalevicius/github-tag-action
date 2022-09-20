@@ -10,9 +10,9 @@ import {
   setRepository,
 } from './helper.test';
 
-jest.spyOn(core, 'debug').mockImplementation(() => {});
-jest.spyOn(core, 'info').mockImplementation(() => {});
-jest.spyOn(console, 'info').mockImplementation(() => {});
+jest.spyOn(core, 'debug').mockImplementation(() => { });
+jest.spyOn(core, 'info').mockImplementation(() => { });
+jest.spyOn(console, 'info').mockImplementation(() => { });
 
 beforeAll(() => {
   setRepository('https://github.com', 'org/repo');
@@ -24,7 +24,7 @@ const mockCreateTag = jest
 
 const mockSetOutput = jest
   .spyOn(core, 'setOutput')
-  .mockImplementation(() => {});
+  .mockImplementation(() => { });
 
 const mockSetFailed = jest.spyOn(core, 'setFailed');
 
@@ -870,6 +870,54 @@ describe('github-tag-action', () => {
        */
       expect(mockSetOutput).toHaveBeenCalledWith('new_version', '2.0.0');
       expect(mockCreateTag).not.toBeCalled();
+      expect(mockSetFailed).not.toBeCalled();
+    });
+  });
+
+  describe('hash version', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+      setBranch('prerelease');
+      setInput('pre_release_branches', 'prerelease');
+      setInput('use_commit_sha', 'prerelease');
+    });
+
+    it('does create prerelease tag', async () => {
+      /*
+       * Given
+       */
+      setInput('default_prerelease_bump', 'prerelease');
+      const commits = [{ message: 'this is my first fix', hash: null }];
+      jest
+        .spyOn(utils, 'getCommits')
+        .mockImplementation(async (sha) => commits);
+
+      const validTags = [
+        {
+          name: 'v1.2.3',
+          commit: { sha: '012345', url: '' },
+          zipball_url: '',
+          tarball_url: 'string',
+          node_id: 'string',
+        },
+      ];
+      jest
+        .spyOn(utils, 'getValidTags')
+        .mockImplementation(async () => validTags);
+
+      /*
+       * When
+       */
+      await action();
+
+      /*
+       * Then
+       */
+      expect(mockCreateTag).toHaveBeenCalledWith(
+        'v1.2.3-prerelease+79e0ea',
+        expect.any(Boolean),
+        expect.any(String)
+      );
       expect(mockSetFailed).not.toBeCalled();
     });
   });

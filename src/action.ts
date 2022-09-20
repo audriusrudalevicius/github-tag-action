@@ -30,6 +30,7 @@ export default async function main() {
   const customReleaseRules = core.getInput('custom_release_rules');
   const shouldFetchAllTags = core.getInput('fetch_all_tags');
   const commitSha = core.getInput('commit_sha');
+  const useCommitSha = core.getInput('use_commit_sha');
 
   let mappedReleaseRules;
   if (customReleaseRules) {
@@ -82,12 +83,7 @@ export default async function main() {
 
   let newVersion: string;
 
-  if (customTag) {
-    commits = await getCommits(latestTag.commit.sha, commitRef);
-
-    core.setOutput('release_type', 'custom');
-    newVersion = customTag;
-  } else {
+  let parsePreviousVersion = function () {
     let previousTag: ReturnType<typeof getLatestTag> | null;
     let previousVersion: SemVer | null;
     if (!latestPrereleaseTag) {
@@ -102,16 +98,43 @@ export default async function main() {
     }
 
     if (!previousTag) {
-      core.setFailed('Could not find previous tag.');
-      return;
+      return null;
     }
 
     previousVersion = parse(previousTag.name.replace(prefixRegex, ''));
 
     if (!previousVersion) {
+      return null;
+    }
+
+    return { previousVersion, previousTag };
+  }
+
+  commits = await getCommits(latestTag.commit.sha, commitRef);
+
+  if ((useCommitSha == 'true' || (isPrerelease && useCommitSha == 'prerelease')) && defaultPreReleaseBump == 'prerelease') {
+    const parsedVersionInfo = parsePreviousVersion();
+    if (parsedVersionInfo == null) {
+      core.setFailed('Failed to parse old version');
+      return;
+    }
+    const { previousVersion, previousTag } = parsedVersionInfo;
+    const shortSha = commitRef.substring(0, 6);
+
+    core.setOutput('previous_version', previousVersion.version);
+    core.setOutput('previous_tag', previousTag.name);
+
+    newVersion = `${previousVersion.major}.${previousVersion.minor}.${previousVersion.patch}-${currentBranch}+${shortSha}`;
+  } else if (customTag) {
+    core.setOutput('release_type', 'custom');
+    newVersion = customTag;
+  } else {
+    const parsedVersionInfo = parsePreviousVersion();
+    if (!parsedVersionInfo) {
       core.setFailed('Could not parse previous tag.');
       return;
     }
+    const { previousVersion, previousTag } = parsedVersionInfo;
 
     core.info(
       `Previous tag was ${previousTag.name}, previous version was ${previousVersion.version}.`
@@ -119,13 +142,11 @@ export default async function main() {
     core.setOutput('previous_version', previousVersion.version);
     core.setOutput('previous_tag', previousTag.name);
 
-    commits = await getCommits(previousTag.commit.sha, commitRef);
-
     let bump = await analyzeCommits(
       {
         releaseRules: mappedReleaseRules
           ? // analyzeCommits doesn't appreciate rules with a section /shrug
-            mappedReleaseRules.map(({ section, ...rest }) => ({ ...rest }))
+          mappedReleaseRules.map(({ section, ...rest }) => ({ ...rest }))
           : undefined,
       },
       { commits, logger: { log: console.info.bind(console) } }
